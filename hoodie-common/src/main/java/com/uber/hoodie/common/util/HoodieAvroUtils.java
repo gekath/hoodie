@@ -85,12 +85,16 @@ public class HoodieAvroUtils {
         Schema.Field recordKeyField = new Schema.Field(HoodieRecord.RECORD_KEY_METADATA_FIELD, METADATA_FIELD_SCHEMA, "", null);
         Schema.Field partitionPathField = new Schema.Field(HoodieRecord.PARTITION_PATH_METADATA_FIELD, METADATA_FIELD_SCHEMA, "", null);
         Schema.Field fileNameField = new Schema.Field(HoodieRecord.FILENAME_METADATA_FIELD, METADATA_FIELD_SCHEMA, "", null);
+        Schema.Field deleteField = new Schema.Field(HoodieRecord.DELETE_FIELD, METADATA_FIELD_SCHEMA, "", null);
+        Schema.Field deletedAtField = new Schema.Field(HoodieRecord.DELETED_AT_FIELD, METADATA_FIELD_SCHEMA, "", null);
 
         parentFields.add(commitTimeField);
         parentFields.add(commitSeqnoField);
         parentFields.add(recordKeyField);
         parentFields.add(partitionPathField);
         parentFields.add(fileNameField);
+        parentFields.add(deleteField);
+        parentFields.add(deletedAtField);
         for (Schema.Field field : schema.getFields()) {
             parentFields.add(new Schema.Field(field.name(), field.schema(), field.doc(), null));
         }
@@ -115,6 +119,8 @@ public class HoodieAvroUtils {
         record.put(HoodieRecord.FILENAME_METADATA_FIELD, fileName);
         record.put(HoodieRecord.PARTITION_PATH_METADATA_FIELD, partitionPath);
         record.put(HoodieRecord.RECORD_KEY_METADATA_FIELD, recordKey);
+        record.put(HoodieRecord.DELETE_FIELD, false);
+
         return record;
     }
 
@@ -124,6 +130,7 @@ public class HoodieAvroUtils {
     public static GenericRecord addCommitMetadataToRecord(GenericRecord record, String commitTime, String commitSeqno) {
         record.put(HoodieRecord.COMMIT_TIME_METADATA_FIELD, commitTime);
         record.put(HoodieRecord.COMMIT_SEQNO_METADATA_FIELD, commitSeqno);
+
         return record;
     }
 

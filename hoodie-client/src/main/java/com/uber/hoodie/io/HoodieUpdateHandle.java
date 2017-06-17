@@ -109,6 +109,8 @@ public class HoodieUpdateHandle <T extends HoodieRecordPayload> extends HoodieIO
                     writeStatus.setPartitionPath(record.getPartitionPath());
                     writeStatus.getStat().setFileId(fileId);
                     writeStatus.getStat().setPath(relativePath);
+                    // record sets initial delete field to false, these are the new records to be updated
+                    ((GenericRecord) record.getData().getInsertValue(schema).get()).put(HoodieRecord.DELETE_FIELD, "false");
                 }
                 keyToNewRecords.put(record.getRecordKey(), record);
                 // update the new location of the record, so we know where to find it next
@@ -154,6 +156,13 @@ public class HoodieUpdateHandle <T extends HoodieRecordPayload> extends HoodieIO
     public void write(GenericRecord oldRecord) {
         String key = oldRecord.get(HoodieRecord.RECORD_KEY_METADATA_FIELD).toString();
         HoodieRecord<T> hoodieRecord = keyToNewRecords.get(key);
+
+        // Set all existing records to true in preparation for merge
+        if (!Boolean.valueOf(oldRecord.get(HoodieRecord.DELETE_FIELD).toString())) {
+            oldRecord.put(HoodieRecord.DELETE_FIELD, true);
+            oldRecord.put(HoodieRecord.DELETED_AT_FIELD, commitTime);
+        }
+
         boolean copyOldRecord = true;
         if (keyToNewRecords.containsKey(key)) {
             try {
