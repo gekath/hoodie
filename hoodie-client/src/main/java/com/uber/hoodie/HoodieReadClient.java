@@ -184,6 +184,7 @@ public class HoodieReadClient implements Serializable {
                 }
             }
             return sqlContextOpt.get().read()
+                    .option("mergeSchema", "true")
                     .parquet(filteredPaths.toArray(new String[filteredPaths.size()]));
         } catch (Exception e) {
             throw new HoodieException("Error reading hoodie dataset as a dataframe", e);

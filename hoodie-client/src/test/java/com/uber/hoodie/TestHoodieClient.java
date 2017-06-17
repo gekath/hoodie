@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 
 import com.uber.hoodie.common.HoodieCleanStat;
 import com.uber.hoodie.common.HoodieClientTestUtils;
+import com.uber.hoodie.common.HoodieRowPayload;
 import com.uber.hoodie.common.HoodieTestDataGenerator;
 import com.uber.hoodie.common.model.HoodieCleaningPolicy;
 import com.uber.hoodie.common.model.HoodieCommitMetadata;
@@ -43,7 +44,11 @@ import com.uber.hoodie.exception.HoodieRollbackException;
 import com.uber.hoodie.index.HoodieIndex;
 import com.uber.hoodie.table.HoodieTable;
 
+<<<<<<< HEAD
 import java.util.Map;
+=======
+import org.apache.avro.Schema;
+>>>>>>> Added test to recognize schema changes
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -1448,15 +1453,81 @@ public class TestHoodieClient implements Serializable {
         assertEquals("Number of deleted records since first commit time ", 4, allDeletedRecords.count());
     }
 
+    @Test
+    public void testSchemaChanges() throws Exception {
+
+        HoodieWriteConfig cfg = getConfig();
+        HoodieWriteClient client = new HoodieWriteClient(jsc, cfg);
+        HoodieIndex index = HoodieIndex.createIndex(cfg, jsc);
+        FileSystem fs = FSUtils.getFs();
+
+        /**
+         * Write 1 (inserts and deletes)
+         * Write actual 200 insert records and ignore 100 delete records
+         */
+        String newCommitTime = "001";
+        List<HoodieRecord> records = dataGen.generateInserts(newCommitTime, 10);
+
+        JavaRDD<HoodieRecord> writeRecords = jsc.parallelize(records, 1);
+
+        List<WriteStatus> statuses = client.upsert(writeRecords, newCommitTime).collect();
+        assertNoWriteErrors(statuses);
+
+        // verify that there is a commit
+        HoodieReadClient readClient = new HoodieReadClient(jsc, basePath, sqlContext);
+        assertEquals("Expecting a single commit.", 1, readClient.listCommitsSince("000").size());
+        assertEquals("Latest commit should be 001", newCommitTime, readClient.latestCommit());
+        assertEquals("Must contain 200 records", records.size(), readClient.readCommit(newCommitTime).count());
+        // Should have 100 records in table (check using Index), all in locations marked at commit
+        HoodieTableMetaClient metaClient = new HoodieTableMetaClient(fs, basePath);
+        HoodieTable<HoodieRowPayload> table = HoodieTable.getHoodieTable(metaClient, getConfig());
+
+        List<HoodieRecord> taggedRecords = index.tagLocation(jsc.parallelize(records, 1), table).collect();
+        checkTaggedRecords(taggedRecords, "001");
+
+        /**
+         * Write 1 (insert one record with updated schema)
+         */
+        HoodieWriteConfig newCfg = HoodieWriteConfig.newBuilder().withPath(basePath)
+                .withSchema(HoodieTestDataGenerator.NEW_TRIP_EXAMPLE_SCHEMA).withParallelism(2, 2)
+                .withCompactionConfig(HoodieCompactionConfig.newBuilder().compactionSmallFileSize(1024 * 1024).build())
+                .withStorageConfig(HoodieStorageConfig.newBuilder().limitFileSize(1024 * 1024).build())
+                .forTable("test-trip-table").withIndexConfig(
+                        HoodieIndexConfig.newBuilder().withIndexType(HoodieIndex.IndexType.BLOOM).build()).build();
+
+        client = new HoodieWriteClient(jsc, newCfg);
+        index = HoodieIndex.createIndex(newCfg, jsc);
+
+        newCommitTime = "004";
+        List<HoodieRecord> updatedRecords = dataGen.generateUpdates(newCommitTime, records.subList(0, 2), true);
+
+        writeRecords = jsc.parallelize(updatedRecords, 1);
+        statuses = client.upsert(writeRecords, newCommitTime).collect();
+        assertNoWriteErrors(statuses);
+
+        // Verify there is a commit
+        readClient = new HoodieReadClient(jsc, basePath,  sqlContext);
+        assertEquals("Expecting a single commit.", 2, readClient.listCommitsSince("000").size());
+        assertEquals("Latest commit should be 001", newCommitTime, readClient.latestCommit());
+        assertEquals("Must contain 2 records", updatedRecords.size(), readClient.readCommit(newCommitTime).count());
+        // Should have 100 records in table (check using Index), all in locations marked at commit
+        metaClient = new HoodieTableMetaClient(fs, basePath);
+        table = HoodieTable.getHoodieTable(metaClient, getConfig());
+
+        taggedRecords = index.tagLocation(jsc.parallelize(updatedRecords, 1), table).collect();
+        checkTaggedRecords(taggedRecords, newCommitTime);
+
+    }
+
     private HoodieCleanStat getCleanStat(List<HoodieCleanStat> hoodieCleanStatsTwo,
-        String partitionPath) {
+                                         String partitionPath) {
         return hoodieCleanStatsTwo.stream()
-            .filter(e -> e.getPartitionPath().equals(partitionPath))
-            .findFirst().get();
+                .filter(e -> e.getPartitionPath().equals(partitionPath))
+                .findFirst().get();
     }
 
     private void updateAllFilesInPartition(List<String> files, String partitionPath,
-        String commitTime) throws IOException {
+                                           String commitTime) throws IOException {
         for (String fileId : files) {
             HoodieTestUtils.createDataFile(basePath, partitionPath, commitTime, fileId);
         }
