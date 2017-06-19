@@ -21,6 +21,7 @@ import com.uber.hoodie.common.model.HoodieDataFile;
 import com.uber.hoodie.common.table.HoodieTableMetaClient;
 import com.uber.hoodie.common.table.HoodieTimeline;
 import com.uber.hoodie.common.table.timeline.HoodieInstant;
+import com.uber.hoodie.common.util.HoodieAvroUtils;
 import com.uber.hoodie.config.HoodieWriteConfig;
 import com.uber.hoodie.WriteStatus;
 import com.uber.hoodie.common.HoodieCleanStat;
@@ -47,6 +48,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -412,6 +415,8 @@ public class HoodieCopyOnWriteTable<T extends HoodieRecordPayload> extends Hoodi
         } else {
             Configuration conf = FSUtils.getFs().getConf();
             AvroReadSupport.setAvroReadSchema(conf, upsertHandle.getSchema());
+            Schema oldSchema = HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(config.getSchema()));
+            AvroReadSupport.setRequestedProjection(conf, oldSchema);
             ParquetReader<IndexedRecord> reader =
                     AvroParquetReader.builder(upsertHandle.getOldFilePath()).withConf(conf).build();
             try {

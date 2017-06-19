@@ -120,7 +120,6 @@ public class HoodieAvroUtils {
         record.put(HoodieRecord.PARTITION_PATH_METADATA_FIELD, partitionPath);
         record.put(HoodieRecord.RECORD_KEY_METADATA_FIELD, recordKey);
         record.put(HoodieRecord.DELETE_FIELD, false);
-
         return record;
     }
 
@@ -130,7 +129,6 @@ public class HoodieAvroUtils {
     public static GenericRecord addCommitMetadataToRecord(GenericRecord record, String commitTime, String commitSeqno) {
         record.put(HoodieRecord.COMMIT_TIME_METADATA_FIELD, commitTime);
         record.put(HoodieRecord.COMMIT_SEQNO_METADATA_FIELD, commitSeqno);
-
         return record;
     }
 

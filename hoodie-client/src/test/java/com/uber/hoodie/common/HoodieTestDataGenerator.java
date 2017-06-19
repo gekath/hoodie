@@ -32,9 +32,11 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.spark.sql.RowFactory;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
-import scala.reflect.internal.Trees;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -83,6 +85,9 @@ public class HoodieTestDataGenerator {
 
     public static final String[] DEFAULT_PARTITION_PATHS = {"2016/03/15", "2015/03/16", "2015/03/17"};
 
+    public static boolean with_field = false;
+
+    public transient SQLContext sqlContext;
 
     public static void writePartitionMetadata(FileSystem fs, String[] partitionPaths, String basePath) {
         for (String partitionPath: partitionPaths) {
@@ -102,6 +107,12 @@ public class HoodieTestDataGenerator {
     public HoodieTestDataGenerator() {
         this(new String[]{"2016/03/15", "2015/03/16", "2015/03/17"});
     }
+
+    public HoodieTestDataGenerator(SQLContext sqlContext) {
+        this.sqlContext = sqlContext;
+        this.partitionPaths = DEFAULT_PARTITION_PATHS;
+    }
+
 
     /**
      * Generates new inserts, uniformly across the partition paths above. It also updates the list
@@ -153,15 +164,6 @@ public class HoodieTestDataGenerator {
         return updates;
     }
 
-    public List<HoodieRecord> generateUpdates(String commitTime, List<HoodieRecord> baseRecords, boolean with_car) throws IOException {
-        List<HoodieRecord> updates = new ArrayList<>();
-        for (HoodieRecord baseRecord: baseRecords) {
-            HoodieRecord record = new HoodieRecord(baseRecord.getKey(), generateRandomValue(baseRecord.getKey(), commitTime, with_car));
-            updates.add(record);
-        }
-        return updates;
-    }
-
     /**
      * Generates new updates, randomly distributed across the keys above.
      */
@@ -179,37 +181,21 @@ public class HoodieTestDataGenerator {
      * Generates a new avro record of the above schema format, retaining the key if optionally
      * provided.
      */
-    public HoodieRowPayload generateRandomValue(HoodieKey key, String commitTime, boolean with_car) throws IOException {
-        GenericRecord rec = generateGenericRecord(key.getRecordKey(), "rider-" + commitTime,
-            "driver-" + commitTime, 0.0, with_car);
-        HoodieAvroUtils.addCommitMetadataToRecord(rec, commitTime, "-1");
-
-        return new HoodieRowPayload(Optional.of(rec.toString()), key.getRecordKey(), key.getPartitionPath());
-    }
-
-    /**
-     * Generates a new avro record of the above schema format, retaining the key if optionally
-     * provided.
-     */
     public HoodieRowPayload generateRandomValue(HoodieKey key, String commitTime) throws IOException {
         GenericRecord rec = generateGenericRecord(key.getRecordKey(), "rider-" + commitTime,
-                "driver-" + commitTime, 0.0, false);
+        "driver-" + commitTime, 0.0);
         HoodieAvroUtils.addCommitMetadataToRecord(rec, commitTime, "-1");
 
-        return new HoodieRowPayload(Optional.of(rec.toString()), key.getRecordKey(), key.getPartitionPath());
+        List<String> jsonData = Arrays.asList(rec.toString());
+        JavaRDD<String> rddData = new JavaSparkContext(sqlContext.sparkContext()).parallelize(jsonData);
+        Dataset<Row> finalData = sqlContext.read().json(rddData);
+        return new HoodieRowPayload(finalData.first());
     }
 
-
     public static GenericRecord generateGenericRecord(String rowKey, String riderName,
-        String driverName, double timestamp, boolean with_car) {
-        GenericRecord rec;
-        if (with_car) {
-            Schema newSchema = HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(NEW_TRIP_EXAMPLE_SCHEMA));
-            rec = new GenericData.Record(newSchema);
-        } else {
-            rec = new GenericData.Record(avroSchema);
-        }
-//        GenericRecord rec = new GenericData.Record(avroSchema);
+        String driverName, double timestamp) {
+        GenericRecord rec = with_field ? (new GenericData.Record(HoodieAvroUtils.addMetadataFields(
+                new Schema.Parser().parse(NEW_TRIP_EXAMPLE_SCHEMA)))) : new GenericData.Record(avroSchema);
         rec.put("_row_key", rowKey);
         rec.put("timestamp", timestamp);
         rec.put("rider", riderName);
@@ -219,8 +205,8 @@ public class HoodieTestDataGenerator {
         rec.put("end_lat", rand.nextDouble());
         rec.put("end_lon", rand.nextDouble());
         rec.put("fare", rand.nextDouble() * 100);
-        if (with_car) {
-            rec.put("car_num", rand.nextInt());
+        if (with_field) {
+            rec.put("car_num", rand.nextInt(100));
         }
         return rec;
     }
@@ -243,5 +229,9 @@ public class HoodieTestDataGenerator {
 
     public String[] getPartitionPaths() {
         return partitionPaths;
+    }
+
+    public void setAddedField(boolean with_field) {
+        this.with_field = with_field;
     }
 }
