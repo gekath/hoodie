@@ -93,7 +93,7 @@ public class TestHoodieClient implements Serializable {
     private String basePath = null;
     private transient HoodieTestDataGenerator dataGen = null;
     private String[] partitionPaths = {"2016/01/01", "2016/02/02", "2016/06/02"};
-    private String schema;
+    private String schema = HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA;
     private static Logger logger = LogManager.getLogger(TestHoodieClient.class);
 
     @Before
@@ -110,7 +110,6 @@ public class TestHoodieClient implements Serializable {
         folder.create();
         basePath = folder.getRoot().getAbsolutePath();
         HoodieTestUtils.init(basePath);
-        schema = HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA;
         dataGen = new HoodieTestDataGenerator(sqlContext, partitionPaths, schema);
     }
 
@@ -1699,6 +1698,83 @@ public class TestHoodieClient implements Serializable {
     }
 
     @Test
+    public void testSchemaChangeFieldCollision() throws Exception {
+
+        HoodieWriteConfig cfg = getConfig();
+        HoodieWriteClient client = new HoodieWriteClient(jsc, cfg);
+        HoodieIndex index = HoodieIndex.createIndex(cfg, jsc);
+        FileSystem fs = FSUtils.getFs();
+
+        /**
+         * Write 1 (inserts and deletes)
+         * Write actual 200 insert records and ignore 100 delete records
+         */
+        String newCommitTime = "001";
+        partitionPaths = new String[]{"2015/03/15", "2015/03/16", "2015/03/17", "2015/03/18", "2015/03/19", "2015/03/20", "2015/03/21"};
+        HoodieTestDataGenerator dataGen = new HoodieTestDataGenerator(sqlContext, partitionPaths, schema);
+        List<HoodieRecord> records = dataGen.generateInserts(newCommitTime, 100);
+
+        JavaRDD<HoodieRecord> writeRecords = jsc.parallelize(records, 1);
+
+        List<WriteStatus> statuses = client.upsert(writeRecords, newCommitTime).collect();
+        assertNoWriteErrors(statuses);
+
+        // verify that there is a commit
+        HoodieReadClient readClient = new HoodieReadClient(jsc, basePath, sqlContext);
+        assertEquals("Expecting a single commit.", 1, readClient.listCommitsSince("000").size());
+        assertEquals("Latest commit should be 001", newCommitTime, readClient.latestCommit());
+        assertEquals("Must contain 200 records", records.size(), readClient.readCommit(newCommitTime).count());
+        // Should have 100 records in table (check using Index), all in locations marked at commit
+
+        /**
+         * Write 2 (insert one record with updated schema: add one field)
+         */
+        schema = HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA_ADD_ONE;
+        cfg = getConfig();
+        client = new HoodieWriteClient(jsc, cfg);
+        index = HoodieIndex.createIndex(cfg, jsc);
+
+        newCommitTime = "004";
+        dataGen.setFieldOne(true);
+        dataGen.setSchema(schema);
+        List<HoodieRecord> recordsAddOneField = dataGen.generateUpdates(newCommitTime, records.subList(0, 10));
+
+        writeRecords = jsc.parallelize(recordsAddOneField, 1);
+        statuses = client.upsert(writeRecords, newCommitTime).collect();
+        assertNoWriteErrors(statuses);
+
+        // Verify there is a commit
+        readClient = new HoodieReadClient(jsc, basePath,  sqlContext);
+        assertEquals("Expecting a single commit.", 2, readClient.listCommitsSince("000").size());
+        assertEquals("Latest commit should be 001", newCommitTime, readClient.latestCommit());
+        assertEquals("Must contain 2 records", recordsAddOneField.size(), readClient.readCommit(newCommitTime).count());
+        // Should have 100 records in table (check using Index), all in locations marked at commit
+
+        /**
+         * Write 3 (insert one record with updated schema: add second fields which collides with first field by type)
+         */
+        schema = HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA_ADD_COLLISION;
+        cfg = getConfig();
+        client = new HoodieWriteClient(jsc, cfg);
+        index = HoodieIndex.createIndex(cfg, jsc);
+
+        newCommitTime = "006";
+        dataGen.setFieldFour(true);
+        dataGen.setSchema(schema);
+        List<HoodieRecord> recordsAddTwoFields = dataGen.generateUpdates(newCommitTime, records.subList(30, 40));
+
+        writeRecords = jsc.parallelize(recordsAddTwoFields, 1);
+        boolean encountered_error = false;
+        try {
+            client.upsert(writeRecords, newCommitTime).collect();
+        } catch (Exception e) {
+            encountered_error = true;
+        }
+
+        assertTrue("No commits were recorded. Error occured because of schema collision", encountered_error);
+    }
+
+    @Test
     public void testSchemaDeleteField() throws Exception {
 
         schema = HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA_ADD_ONE;
@@ -1737,17 +1813,10 @@ public class TestHoodieClient implements Serializable {
         /**
          * Write 1 (insert one record with updated schema: add one field)
          */
-
-        HoodieWriteConfig newCfg = HoodieWriteConfig.newBuilder().withPath(basePath)
-                .withSchema(HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA).withParallelism(2, 2)
-                .withCompactionConfig(HoodieCompactionConfig.newBuilder().compactionSmallFileSize(1024 * 1024).build())
-                .withStorageConfig(HoodieStorageConfig.newBuilder().limitFileSize(1024 * 1024).build())
-                .forTable("test-trip-table").withIndexConfig(
-                        HoodieIndexConfig.newBuilder().withIndexType(HoodieIndex.IndexType.BLOOM).build()).build();
-
-
-        client = new HoodieWriteClient(jsc, newCfg);
-        index = HoodieIndex.createIndex(newCfg, jsc);
+        schema = HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA;
+        cfg = getConfig();
+        client = new HoodieWriteClient(jsc, cfg);
+        index = HoodieIndex.createIndex(cfg, jsc);
 
         newCommitTime = "004";
         dataGen.setFieldOne(false);

@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
@@ -113,6 +114,20 @@ public class HoodieTestDataGenerator {
             + "{\"name\": \"car_color\", \"type\": [\"null\", \"string\"], \"default\": \"null\"},"
             + "{\"name\":\"fare\",\"type\": \"double\"}]}";
 
+    public static String TRIP_EXAMPLE_SCHEMA_ADD_COLLISION = "{\"type\": \"record\","
+            + "\"name\": \"triprec\","
+            + "\"fields\": [ "
+            + "{\"name\": \"timestamp\",\"type\": \"double\"},"
+            + "{\"name\": \"_row_key\", \"type\": \"string\"},"
+            + "{\"name\": \"rider\", \"type\": \"string\"},"
+            + "{\"name\": \"driver\", \"type\": \"string\"},"
+            + "{\"name\": \"begin_lat\", \"type\": \"double\"},"
+            + "{\"name\": \"begin_lon\", \"type\": \"double\"},"
+            + "{\"name\": \"end_lat\", \"type\": \"double\"},"
+            + "{\"name\": \"end_lon\", \"type\": \"double\"},"
+            + "{\"name\": \"car_num\", \"type\": [\"null\", \"string\"], \"default\": \"null\"},"
+            + "{\"name\":\"fare\",\"type\": \"double\"}]}";
+
 
     // based on examination of sample file, the schema produces the following per record size
     public static final int SIZE_PER_RECORD = 50 * 1024;
@@ -122,8 +137,7 @@ public class HoodieTestDataGenerator {
     public static boolean field_one = false;
     public static boolean field_two = false;
     public static boolean field_three = false;
-
-    public static Schema avroSchema;
+    public static boolean field_four = false;
 
     private static Logger logger = LogManager.getLogger(HoodieTestDataGenerator.class);
     public transient SQLContext sqlContext;
@@ -135,7 +149,7 @@ public class HoodieTestDataGenerator {
     }
 
     private List<KeyPartition> existingKeysList = new ArrayList<>();
-//    public static Schema avroSchema = HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(TRIP_EXAMPLE_SCHEMA));
+    public static Schema avroSchema = HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(TRIP_EXAMPLE_SCHEMA));
     private static Random rand = new Random(46474747);
     private String[] partitionPaths = DEFAULT_PARTITION_PATHS;
 
@@ -238,7 +252,7 @@ public class HoodieTestDataGenerator {
         return new HoodieRowPayload(finalData.first());
     }
 
-    public GenericRecord generateGenericRecord(String rowKey, String riderName,
+    public static GenericRecord generateGenericRecord(String rowKey, String riderName,
         String driverName, double timestamp) {
         GenericRecord rec = new GenericData.Record(avroSchema);
         rec.put("_row_key", rowKey);
@@ -252,12 +266,15 @@ public class HoodieTestDataGenerator {
         rec.put("fare", rand.nextDouble() * 100);
         if (field_one) {
             rec.put("car_num", rand.nextInt(100));
-            if (field_two) {
-                rec.put("car_model", "model-" + String.valueOf(rand.nextInt(100)));
-                if (field_three) {
-                    rec.put("car_color", "black");
-                }
-            }
+        }
+        if (field_two) {
+            rec.put("car_model", "model-" + String.valueOf(rand.nextInt(100)));
+        }
+        if (field_three) {
+            rec.put("car_color", "black");
+        }
+        if (field_four) {
+            rec.put("car_num", "black");
         }
         return rec;
     }
@@ -292,5 +309,9 @@ public class HoodieTestDataGenerator {
 
     public void setFieldThree(boolean is_field) {
         this.field_three = is_field;
+    }
+
+    public void setFieldFour(boolean is_field) {
+        this.field_four = is_field;
     }
 }
