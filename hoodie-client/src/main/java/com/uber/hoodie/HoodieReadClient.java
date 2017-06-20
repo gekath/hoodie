@@ -215,6 +215,7 @@ public class HoodieReadClient implements Serializable {
                 fileIdToFullPath.putAll(metadata.getFileIdAndFullPaths(basePath));
             }
             return sqlContextOpt.get().read()
+                    .option("mergeSchema", "true")
                     .parquet(fileIdToFullPath.values().toArray(new String[fileIdToFullPath.size()]))
                     .filter(String.format("%s >'%s'", HoodieRecord.COMMIT_TIME_METADATA_FIELD, lastCommitTimestamp));
         } catch (IOException e) {
@@ -240,6 +241,7 @@ public class HoodieReadClient implements Serializable {
             String basePath = hoodieTable.getMetaClient().getBasePath();
             HashMap<String, String> paths = commitMetadata.getFileIdAndFullPaths(basePath);
             return sqlContextOpt.get().read()
+                    .option("mergeSchema", "true")
                     .parquet(paths.values().toArray(new String[paths.size()]))
                     .filter(String.format("%s ='%s'", HoodieRecord.COMMIT_TIME_METADATA_FIELD, commitTime));
         } catch (Exception e) {

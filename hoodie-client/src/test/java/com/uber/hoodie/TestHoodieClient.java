@@ -49,6 +49,8 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -1522,12 +1524,14 @@ public class TestHoodieClient implements Serializable {
         HoodieIndex index = HoodieIndex.createIndex(cfg, jsc);
         FileSystem fs = FSUtils.getFs();
 
+        Logger logger = LogManager.getLogger(HoodieRowPayload.class);
+
         /**
          * Write 1 (inserts and deletes)
          * Write actual 200 insert records and ignore 100 delete records
          */
         String newCommitTime = "001";
-        List<HoodieRecord> records = dataGen.generateInserts(newCommitTime, 10);
+        List<HoodieRecord> records = dataGen.generateInserts(newCommitTime, 3);
 
         JavaRDD<HoodieRecord> writeRecords = jsc.parallelize(records, 1);
 
@@ -1561,7 +1565,7 @@ public class TestHoodieClient implements Serializable {
 
         newCommitTime = "004";
         dataGen.setAddedField(true);
-        List<HoodieRecord> updatedRecords = dataGen.generateUpdates(newCommitTime, records.subList(0, 2));
+        List<HoodieRecord> updatedRecords = dataGen.generateUpdates(newCommitTime, records.subList(1, 2));
         dataGen.setAddedField(false);
 
         writeRecords = jsc.parallelize(updatedRecords, 1);
@@ -1579,6 +1583,9 @@ public class TestHoodieClient implements Serializable {
 
         taggedRecords = index.tagLocation(jsc.parallelize(updatedRecords, 1), table).collect();
         checkTaggedRecords(taggedRecords, newCommitTime);
+
+        logger.info("Read these datasets" + readClient.readSince("000").takeAsList(100).toString());
+
     }
 
     @Test

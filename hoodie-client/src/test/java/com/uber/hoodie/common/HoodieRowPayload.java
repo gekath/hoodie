@@ -54,5 +54,4 @@ public class HoodieRowPayload implements HoodieRecordPayload<HoodieRowPayload> {
         }
         return java.util.Optional.of(record);
     }
-
 }

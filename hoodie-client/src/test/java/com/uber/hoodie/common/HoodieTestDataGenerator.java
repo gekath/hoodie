@@ -177,13 +177,14 @@ public class HoodieTestDataGenerator {
         return updates;
     }
 
+
     /**
      * Generates a new avro record of the above schema format, retaining the key if optionally
      * provided.
      */
     public HoodieRowPayload generateRandomValue(HoodieKey key, String commitTime) throws IOException {
         GenericRecord rec = generateGenericRecord(key.getRecordKey(), "rider-" + commitTime,
-        "driver-" + commitTime, 0.0);
+            "driver-" + commitTime, 0.0);
         HoodieAvroUtils.addCommitMetadataToRecord(rec, commitTime, "-1");
 
         List<String> jsonData = Arrays.asList(rec.toString());
