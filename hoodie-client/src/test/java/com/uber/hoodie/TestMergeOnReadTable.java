@@ -107,7 +107,7 @@ public class TestMergeOnReadTable {
          * Write 1 (only inserts)
          */
         String newCommitTime = "001";
-        HoodieTestDataGenerator dataGen = new HoodieTestDataGenerator();
+        HoodieTestDataGenerator dataGen = new HoodieTestDataGenerator(sqlContext);
         List<HoodieRecord> records = dataGen.generateInserts(newCommitTime, 200);
         JavaRDD<HoodieRecord> writeRecords = jsc.parallelize(records, 1);
 

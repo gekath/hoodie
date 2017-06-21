@@ -119,7 +119,7 @@ public class HoodieAvroUtils {
         record.put(HoodieRecord.FILENAME_METADATA_FIELD, fileName);
         record.put(HoodieRecord.PARTITION_PATH_METADATA_FIELD, partitionPath);
         record.put(HoodieRecord.RECORD_KEY_METADATA_FIELD, recordKey);
-        record.put(HoodieRecord.DELETE_FIELD, false);
+        record.put(HoodieRecord.DELETE_FIELD, "false");
         return record;
     }
 

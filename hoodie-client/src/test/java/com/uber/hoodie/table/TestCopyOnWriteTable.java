@@ -42,6 +42,7 @@ import org.apache.parquet.avro.AvroReadSupport;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SQLContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -375,7 +376,7 @@ public class TestCopyOnWriteTable {
         HoodieTableMetaClient metadata = new HoodieTableMetaClient(FSUtils.getFs(), basePath);
         HoodieCopyOnWriteTable table  = new HoodieCopyOnWriteTable(config, metadata);
 
-        HoodieTestDataGenerator dataGenerator = new HoodieTestDataGenerator(new String[]{TEST_PARTITION_PATH});
+        HoodieTestDataGenerator dataGenerator = new HoodieTestDataGenerator(new SQLContext(jsc), new String[]{TEST_PARTITION_PATH});
         List<HoodieRecord> insertRecords = dataGenerator.generateInserts("001", numInserts);
         List<HoodieRecord> updateRecords = dataGenerator.generateUpdates("001", numUpdates);
         for (HoodieRecord updateRec: updateRecords) {

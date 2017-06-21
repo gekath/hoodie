@@ -76,7 +76,7 @@ public class TestHoodieCompactor {
         basePath = folder.getRoot().getAbsolutePath();
         HoodieTestUtils.initTableType(basePath, HoodieTableType.MERGE_ON_READ);
 
-        dataGen = new HoodieTestDataGenerator();
+        dataGen = new HoodieTestDataGenerator(new SQLContext(jsc));
         compactor = new HoodieRealtimeTableCompactor();
     }
 
@@ -87,6 +87,7 @@ public class TestHoodieCompactor {
         }
         if (jsc != null) {
             jsc.stop();
+            dataGen.setSchema(HoodieTestDataGenerator.TRIP_EXAMPLE_SCHEMA);
         }
     }
 

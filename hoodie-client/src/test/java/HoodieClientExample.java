@@ -35,6 +35,8 @@ import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SQLContext;
+
 import java.util.List;
 
 /**
@@ -78,7 +80,7 @@ public class HoodieClientExample {
         JavaSparkContext jsc = new JavaSparkContext(sparkConf);
 
         // Generator of some records to be loaded in.
-        HoodieTestDataGenerator dataGen = new HoodieTestDataGenerator();
+        HoodieTestDataGenerator dataGen = new HoodieTestDataGenerator(new SQLContext(jsc));
 
         // initialize the table, if not done already
         Path path = new Path(tablePath);

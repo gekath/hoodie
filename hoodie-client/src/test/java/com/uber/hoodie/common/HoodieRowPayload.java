@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2017 Uber Technologies, Inc. (hoodie-dev-group@uber.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *          http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.uber.hoodie.common;
 
 import com.uber.hoodie.common.model.HoodieRecord;
@@ -46,7 +62,7 @@ public class HoodieRowPayload implements HoodieRecordPayload<HoodieRowPayload> {
                 ((GenericRecord) record).put(field.name(), row.getAs(field.name()));
 
                 // This should be where the insert value modifies field to false again
-                ((GenericRecord) record).put(HoodieRecord.DELETE_FIELD, false);
+                ((GenericRecord) record).put(HoodieRecord.DELETE_FIELD, "false");
                 ((GenericRecord) record).put(HoodieRecord.DELETED_AT_FIELD, null);
             } catch (IllegalArgumentException e) {
             } catch (java.lang.RuntimeException e2) {

@@ -83,7 +83,7 @@ public class HoodieTestDataGenerator {
             + "{\"name\": \"car_num\", \"type\": [\"null\", \"double\"], \"default\": \"null\"},"
             + "{\"name\":\"fare\",\"type\": \"double\"}]}";
 
-    public static String TRIP_EXAMPLE_SCHEMA_ADD_TWO = "{\"type\": \"record\","
+    public static String TRIP_EXAMPLE_SCHEMA_ADD_ONE_MORE = "{\"type\": \"record\","
             + "\"name\": \"triprec\","
             + "\"fields\": [ "
             + "{\"name\": \"timestamp\",\"type\": \"double\"},"
@@ -98,7 +98,7 @@ public class HoodieTestDataGenerator {
             + "{\"name\": \"car_model\", \"type\": [\"null\", \"string\"], \"default\": \"null\"},"
             + "{\"name\":\"fare\",\"type\": \"double\"}]}";
 
-    public static String TRIP_EXAMPLE_SCHEMA_ADD_THREE = "{\"type\": \"record\","
+    public static String TRIP_EXAMPLE_SCHEMA_ADD_ONE_MORE_MORE = "{\"type\": \"record\","
             + "\"name\": \"triprec\","
             + "\"fields\": [ "
             + "{\"name\": \"timestamp\",\"type\": \"double\"},"
@@ -111,6 +111,34 @@ public class HoodieTestDataGenerator {
             + "{\"name\": \"end_lon\", \"type\": \"double\"},"
             + "{\"name\": \"car_num\", \"type\": [\"null\", \"double\"], \"default\": \"null\"},"
             + "{\"name\": \"car_model\", \"type\": [\"null\", \"string\"], \"default\": \"null\"},"
+            + "{\"name\": \"car_color\", \"type\": [\"null\", \"string\"], \"default\": \"null\"},"
+            + "{\"name\":\"fare\",\"type\": \"double\"}]}";
+
+    public static String TRIP_EXAMPLE_SCHEMA_ADD_TWO = "{\"type\": \"record\","
+            + "\"name\": \"triprec\","
+            + "\"fields\": [ "
+            + "{\"name\": \"timestamp\",\"type\": \"double\"},"
+            + "{\"name\": \"_row_key\", \"type\": \"string\"},"
+            + "{\"name\": \"rider\", \"type\": \"string\"},"
+            + "{\"name\": \"driver\", \"type\": \"string\"},"
+            + "{\"name\": \"begin_lat\", \"type\": \"double\"},"
+            + "{\"name\": \"begin_lon\", \"type\": \"double\"},"
+            + "{\"name\": \"end_lat\", \"type\": \"double\"},"
+            + "{\"name\": \"end_lon\", \"type\": \"double\"},"
+            + "{\"name\": \"car_model\", \"type\": [\"null\", \"string\"], \"default\": \"null\"},"
+            + "{\"name\":\"fare\",\"type\": \"double\"}]}";
+
+    public static String TRIP_EXAMPLE_SCHEMA_ADD_THREE = "{\"type\": \"record\","
+            + "\"name\": \"triprec\","
+            + "\"fields\": [ "
+            + "{\"name\": \"timestamp\",\"type\": \"double\"},"
+            + "{\"name\": \"_row_key\", \"type\": \"string\"},"
+            + "{\"name\": \"rider\", \"type\": \"string\"},"
+            + "{\"name\": \"driver\", \"type\": \"string\"},"
+            + "{\"name\": \"begin_lat\", \"type\": \"double\"},"
+            + "{\"name\": \"begin_lon\", \"type\": \"double\"},"
+            + "{\"name\": \"end_lat\", \"type\": \"double\"},"
+            + "{\"name\": \"end_lon\", \"type\": \"double\"},"
             + "{\"name\": \"car_color\", \"type\": [\"null\", \"string\"], \"default\": \"null\"},"
             + "{\"name\":\"fare\",\"type\": \"double\"}]}";
 
@@ -153,18 +181,21 @@ public class HoodieTestDataGenerator {
     private static Random rand = new Random(46474747);
     private String[] partitionPaths = DEFAULT_PARTITION_PATHS;
 
-    public HoodieTestDataGenerator(String[] partitionPaths) {
-        this.partitionPaths = partitionPaths;
+//    public HoodieTestDataGenerator(String[] partitionPaths) {
+//        this.partitionPaths = partitionPaths;
+//    }
+//
+//    public HoodieTestDataGenerator() {
+//        this(new String[]{"2016/03/15", "2015/03/16", "2015/03/17"});
+//    }
+
+    public HoodieTestDataGenerator(SQLContext sqlContext) {
+        this(sqlContext, DEFAULT_PARTITION_PATHS);
     }
 
-    public HoodieTestDataGenerator() {
-        this(new String[]{"2016/03/15", "2015/03/16", "2015/03/17"});
-    }
-
-    public HoodieTestDataGenerator(SQLContext sqlContext, String[] partitionPaths, String schema) {
+    public HoodieTestDataGenerator(SQLContext sqlContext, String[] partitionPaths) {
         this.sqlContext = sqlContext;
         this.partitionPaths = partitionPaths;
-        setSchema(schema);
     }
 
 
