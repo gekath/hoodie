@@ -115,6 +115,8 @@ public class HoodieRealtimeTableCompactor implements HoodieCompactor {
       metadata.addWriteStat(stat.getPartitionPath(), stat);
     }
 
+    metadata.addSchema(config.getSchema());
+
     log.info("Compaction finished with result " + metadata);
 
     //noinspection ConstantConditions

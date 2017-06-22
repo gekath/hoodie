@@ -27,16 +27,19 @@ import com.uber.hoodie.common.table.HoodieTimeline;
 import com.uber.hoodie.common.table.TableFileSystemView;
 import com.uber.hoodie.common.table.timeline.HoodieInstant;
 import com.uber.hoodie.common.util.FSUtils;
+import com.uber.hoodie.common.util.HoodieAvroUtils;
 import com.uber.hoodie.config.HoodieWriteConfig;
 import com.uber.hoodie.exception.HoodieException;
 import com.uber.hoodie.index.HoodieBloomIndex;
-
+import com.databricks.spark.avro.SchemaConverters;
 import com.uber.hoodie.table.HoodieTable;
 
+import org.apache.avro.Schema;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.parquet.avro.AvroSchemaConverter;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -44,6 +47,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.execution.datasources.parquet.ParquetSchemaConverter;
+import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
@@ -143,7 +148,12 @@ public class HoodieReadClient implements Serializable {
 
         // record locations might be same for multiple keys, so need a unique list
         Set<String> uniquePaths = new HashSet<>(paths);
-        Dataset<Row> originalDF = sqlContextOpt.get().read()
+        HoodieCommitMetadata finalMetadata = HoodieCommitMetadata.fromBytes(
+                commitTimeline.getInstantDetails(commitTimeline.lastInstant().get()).get());
+        String finalSchema = finalMetadata.getSchema();
+        StructType schemaStructType = (StructType) SchemaConverters.toSqlType(
+                HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(finalSchema))).dataType();
+        Dataset<Row> originalDF = sqlContextOpt.get().read().schema(schemaStructType)
                 .parquet(uniquePaths.toArray(new String[uniquePaths.size()]));
         StructType schema = originalDF.schema();
         JavaPairRDD<HoodieKey, Row> keyRowRDD = originalDF.javaRDD()
@@ -183,8 +193,14 @@ public class HoodieReadClient implements Serializable {
                     filteredPaths.add(file.getPath());
                 }
             }
+            HoodieCommitMetadata finalMetadata = HoodieCommitMetadata.fromBytes(
+                    commitTimeline.getInstantDetails(commitTimeline.lastInstant().get()).get());
+            String schema = finalMetadata.getSchema();
+            StructType schemaStructType = (StructType) SchemaConverters.toSqlType(
+                    HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(schema))).dataType();
             return sqlContextOpt.get().read()
-                    .option("mergeSchema", "true")
+//                    .option("mergeSchema", "true")
+                    .schema(schemaStructType)
                     .parquet(filteredPaths.toArray(new String[filteredPaths.size()]));
         } catch (Exception e) {
             throw new HoodieException("Error reading hoodie dataset as a dataframe", e);
@@ -214,8 +230,14 @@ public class HoodieReadClient implements Serializable {
                 String basePath = hoodieTable.getMetaClient().getBasePath();
                 fileIdToFullPath.putAll(metadata.getFileIdAndFullPaths(basePath));
             }
+            HoodieCommitMetadata finalMetadata = HoodieCommitMetadata.fromBytes(
+                    commitTimeline.getInstantDetails(commitTimeline.lastInstant().get()).get());
+            String schema = finalMetadata.getSchema();
+            StructType schemaStructType = (StructType) SchemaConverters.toSqlType(
+                        HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(schema))).dataType();
             return sqlContextOpt.get().read()
-                    .option("mergeSchema", "true")
+//                    .option("mergeSchema", "true")
+                    .schema(schemaStructType)
                     .parquet(fileIdToFullPath.values().toArray(new String[fileIdToFullPath.size()]))
                     .filter(String.format("%s >'%s'", HoodieRecord.COMMIT_TIME_METADATA_FIELD, lastCommitTimestamp));
         } catch (IOException e) {
@@ -240,8 +262,12 @@ public class HoodieReadClient implements Serializable {
                     HoodieCommitMetadata.fromBytes(commitTimeline.getInstantDetails(commitInstant).get());
             String basePath = hoodieTable.getMetaClient().getBasePath();
             HashMap<String, String> paths = commitMetadata.getFileIdAndFullPaths(basePath);
+            String schema = commitMetadata.getSchema();
+            StructType schemaStructType = (StructType) SchemaConverters.toSqlType(
+                    HoodieAvroUtils.addMetadataFields(new Schema.Parser().parse(schema))).dataType();
             return sqlContextOpt.get().read()
-                    .option("mergeSchema", "true")
+//                    .option("mergeSchema", "true")
+                    .schema(schemaStructType)
                     .parquet(paths.values().toArray(new String[paths.size()]))
                     .filter(String.format("%s ='%s'", HoodieRecord.COMMIT_TIME_METADATA_FIELD, commitTime));
         } catch (Exception e) {
@@ -295,5 +321,9 @@ public class HoodieReadClient implements Serializable {
      */
     public String latestCommit() {
         return commitTimeline.lastInstant().get().getTimestamp();
+    }
+
+    public String latestCommit(String mergeOnRead) {
+        return hoodieTable.getActiveTimeline().getDeltaCommitTimeline().lastInstant().get().getTimestamp();
     }
 }

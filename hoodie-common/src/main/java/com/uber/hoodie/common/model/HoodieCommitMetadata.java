@@ -45,9 +45,13 @@ public class HoodieCommitMetadata implements Serializable {
 
     private HashMap<String, String> extraMetadataMap;
 
+    private String schema;
+
     public HoodieCommitMetadata() {
         extraMetadataMap = new HashMap<>();
         partitionToWriteStats = new HashMap<>();
+        schema = "";
+
     }
 
     public void addWriteStat(String partitionPath, HoodieWriteStat stat) {
@@ -55,6 +59,14 @@ public class HoodieCommitMetadata implements Serializable {
             partitionToWriteStats.put(partitionPath, new ArrayList<>());
         }
         partitionToWriteStats.get(partitionPath).add(stat);
+    }
+
+    public void addSchema(String schema) {
+        this.schema = schema;
+    }
+
+    public String getSchema() {
+        return schema;
     }
 
     public void addMetadata(String metaKey, String value) {

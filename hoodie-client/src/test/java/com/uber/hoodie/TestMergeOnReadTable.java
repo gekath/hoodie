@@ -148,7 +148,6 @@ public class TestMergeOnReadTable {
             }
         }
 
-
         statuses = client.upsert(jsc.parallelize(records, 1), newCommitTime).collect();
         // Verify there are no errors
         assertNoWriteErrors(statuses);

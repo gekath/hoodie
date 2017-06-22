@@ -359,6 +359,8 @@ public class HoodieWriteClient<T extends HoodieRecordPayload> implements Seriali
             extraMetadata.get().forEach((k, v) -> metadata.addMetadata(k, v));
         }
 
+        metadata.addSchema(config.getSchema());
+
         try {
             String actionType = table.getCommitActionType();
             activeTimeline.saveAsComplete(

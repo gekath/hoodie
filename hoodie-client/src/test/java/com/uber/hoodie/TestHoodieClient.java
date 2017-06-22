@@ -1953,18 +1953,8 @@ public class TestHoodieClient implements Serializable {
         assertEquals("Latest commit should be 001", newCommitTime, readClient.latestCommit());
         assertEquals("Must contain 2 records", deletedFieldRecords.size(), readClient.readCommit(newCommitTime).count());
         // Should have 100 records in table (check using Index), all in locations marked at commit
-        metaClient = new HoodieTableMetaClient(fs, basePath);
-        table = HoodieTable.getHoodieTable(metaClient, getConfig());
 
-        String actionType = table.getCompactedCommitActionType();
-        HoodieInstant commitInstant =
-                new HoodieInstant(false, actionType, newCommitTime);
-        HoodieTimeline commitTimeline = table.getCompletedCompactionCommitTimeline();
-        HoodieCommitMetadata commitMetadata =
-                HoodieCommitMetadata.fromBytes(commitTimeline.getInstantDetails(commitInstant).get());
-        String basePath = table.getMetaClient().getBasePath();
-        Collection<String> commitPathNames = commitMetadata.getFileIdAndFullPaths(basePath).values();
-        String[] paths = commitPathNames.toArray(new String[commitPathNames.size()]);
+        readClient.readCommit(newCommitTime);
 
     }
 
