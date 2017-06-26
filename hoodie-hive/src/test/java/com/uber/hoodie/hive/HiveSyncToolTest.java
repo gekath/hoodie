@@ -240,13 +240,15 @@ public class HiveSyncToolTest {
     tool.syncHoodieTable();
 
     assertEquals("Hive Schema has evolved and should not be 3 more field",
-        fields + 3,
+        fields + 2,
         hiveClient.getTableSchema().size());
     assertEquals("Hive Schema has evolved - Field favorite_number has evolved from int to long",
         "BIGINT",
         hiveClient.getTableSchema().get("favorite_number"));
     assertTrue("Hive Schema has evolved - Field favorite_movie was added",
         hiveClient.getTableSchema().containsKey("favorite_movie"));
+    assertFalse("Hive Schema has evolved - Field favorite_color has been removed.",
+            hiveClient.getTableSchema().containsKey("favorite_color"));
 
     // Sync should add the one partition
     assertEquals("The one partition we wrote should be added to hive", 6,
