@@ -21,7 +21,7 @@
     <groupId>com.uber.hoodie</groupId>
     <artifactId>hoodie</artifactId>
     <packaging>pom</packaging>
-    <version>0.3.9-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
     <description>Hoodie is a Apache Spark library that provides the ability to efficiently do incremental processing on datasets in HDFS</description>
     <url>https://github.com/uber/hoodie</url>
     <name>Hoodie</name>
@@ -105,7 +105,7 @@
         <maven-dependency-plugin.version>2.10</maven-dependency-plugin.version>
         <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
-        <parquet.version>1.8.1</parquet.version>
+        <parquet.version>1.9.0</parquet.version>
         <junit.version>4.11</junit.version>
         <mockito.version>1.9.5</mockito.version>
         <log4j.version>1.2.17</log4j.version>
@@ -114,6 +114,7 @@
         <hive.version>1.1.0</hive.version>
         <metrics.version>3.1.1</metrics.version>
         <spark.version>2.1.0</spark.version>
+        <avro.version>1.8.1</avro.version>
     </properties>
 
     <scm>
@@ -286,7 +287,7 @@
                 <plugin>
                     <groupId>org.apache.avro</groupId>
                     <artifactId>avro-maven-plugin</artifactId>
-                    <version>1.7.6</version>
+                    <version>${avro.version}</version>
                     <executions>
                         <execution>
                             <phase>generate-sources</phase>
@@ -342,7 +343,7 @@
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro-mapred</artifactId>
-                <version>1.7.7</version>
+                <version>${avro.version}</version>
             </dependency>
 
             <!-- we have to stay at <= 16.0, due to issues with HBase client -->
@@ -414,6 +415,7 @@
                 <artifactId>parquet-hive-bundle</artifactId>
                 <version>1.5.0</version>
             </dependency>
+
             <dependency>
                 <groupId>com.twitter</groupId>
                 <artifactId>parquet-avro</artifactId>
@@ -423,7 +425,7 @@
             <dependency>
                 <groupId>org.apache.parquet</groupId>
                 <artifactId>parquet-hive-bundle</artifactId>
-                <version>1.8.1</version>
+                <version>${parquet.version}</version>
             </dependency>
 
             <dependency>
@@ -431,12 +433,24 @@
                 <artifactId>spark-core_2.10</artifactId>
                 <version>${spark.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.avro</groupId>
+                        <artifactId>avro-mapred</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-sql_2.10</artifactId>
                 <version>${spark.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.parquet</groupId>
+                        <artifactId>parquet-column</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -448,7 +462,7 @@
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
-                <version>1.7.6-cdh5.7.2</version>
+                <version>${avro.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.slf4j</groupId>

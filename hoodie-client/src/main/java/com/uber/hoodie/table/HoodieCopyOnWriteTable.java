@@ -412,8 +412,7 @@ public class HoodieCopyOnWriteTable<T extends HoodieRecordPayload> extends Hoodi
         } else {
             Configuration conf = FSUtils.getFs().getConf();
             AvroReadSupport.setAvroReadSchema(conf, upsertHandle.getSchema());
-            ParquetReader<IndexedRecord> reader =
-                    AvroParquetReader.builder(upsertHandle.getOldFilePath()).withConf(conf).build();
+            ParquetReader<IndexedRecord> reader = ParquetReader.builder(new AvroReadSupport<IndexedRecord>(), upsertHandle.getOldFilePath()).withConf(conf).build();
             try {
                 IndexedRecord record;
                 while ((record = reader.read()) != null) {
