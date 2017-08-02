@@ -137,8 +137,12 @@ public class FSUtils {
 
     public static String getRelativePartitionPath(Path basePath, Path partitionPath) {
         String partitionFullPath = partitionPath.toString();
-        int partitionStartIndex = partitionFullPath.lastIndexOf(basePath.getName());
-        return partitionFullPath.substring(partitionStartIndex + basePath.getName().length() + 1);
+        if (partitionFullPath.contains(basePath.getName())) {
+            int partitionStartIndex = partitionFullPath.lastIndexOf(basePath.getName());
+            return partitionFullPath.substring(partitionStartIndex + basePath.getName().length() + 1);
+        } else {
+            return partitionFullPath;
+        }
     }
 
     /**
